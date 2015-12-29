@@ -1,0 +1,4 @@
+---
+# the time after you get new items in seconds
+get-items-after: 30
+...
