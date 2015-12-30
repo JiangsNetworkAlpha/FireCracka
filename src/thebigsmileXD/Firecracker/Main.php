@@ -1,5 +1,11 @@
 <?php
 
+/*
+ * Firecracker
+ * A plugin by thebigsmileXD
+ * http://github.com/ImagicalCorp/Firecracker
+ * Happy new year!
+ */
 namespace thebigsmileXD\Firecracker;
 
 use pocketmine\command\Command;
@@ -14,14 +20,17 @@ use pocketmine\event\entity\ItemSpawnEvent;
 use pocketmine\entity\Item as ItemEntity;
 use pocketmine\network\protocol\ExplodePacket;
 use pocketmine\event\player\PlayerJoinEvent;
-use pocketmine\entity\Entity;
 use pocketmine\Server;
 use pocketmine\network\Network;
 use pocketmine\math\Vector3;
+use pocketmine\level\sound\FizzSound;
+use pocketmine\level\particle\FlameParticle;
+use pocketmine\event\player\PlayerItemHeldEvent;
 
 class Main extends PluginBase implements Listener{
 	public $crackers = array();
 	public $givetask = array();
+	public $particlesoundtask = null;
 
 	public function onLoad(){
 		$this->getLogger()->info(TextFormat::GREEN . "Loading " . $this->getDescription()->getFullName());
@@ -38,6 +47,9 @@ class Main extends PluginBase implements Listener{
 		$this->saveDefaultConfig();
 		if(!$this->getConfig()->exists("give-items-after")){
 			$this->getConfig()->set("give-items-after", 30);
+		}
+		if(!$this->getConfig()->exists("translation")){
+			$this->getConfig()->set("translation", "Firecracker");
 		}
 		$this->setConfig();
 	}
@@ -68,7 +80,10 @@ class Main extends PluginBase implements Listener{
 						switch($args[0]){
 							case "get":
 								{
-									$this->giveFirecracker($sender);
+									if($this->runIngame($sender)){
+										$this->giveFirecracker($sender);
+										return true;
+									}
 								}
 							default:
 								return false;
@@ -101,7 +116,6 @@ class Main extends PluginBase implements Listener{
 		$pk->radius = 10;
 		$pk->records = [new Vector3($itementity->x, $itementity->y + 0.5, $itementity->z)];
 		Server::broadcastPacket($itementity->getLevel()->getChunkPlayers($itementity->x >> 4, $itementity->z >> 4), $pk->setChannel(Network::CHANNEL_BLOCKS));
-		
 		$itementity->kill();
 		if(isset($this->crackers[$id])){
 			$this->getServer()->getScheduler()->cancelTask($this->crackers[$id]);
@@ -109,11 +123,28 @@ class Main extends PluginBase implements Listener{
 		}
 	}
 
+	public function makeParticleSound(){
+		foreach($this->getServer()->getLevels() as $level){
+			foreach($level->getEntities() as $entity){
+				if($entity instanceof ItemEntity && $entity->getItem()->getId() === Item::BRICK){
+					$entity->getLevel()->addSound(new FizzSound($entity->getPosition()));
+					$entity->getLevel()->addParticle(new FlameParticle(new Vector3($entity->x, $entity->y + 0.5, $entity->z)));
+				}
+			}
+		}
+	}
+
+	public function onSelect(PlayerItemHeldEvent $event){
+		if($event->getItem()->getId() === Item::BRICK){
+			$event->getPlayer()->sendPopup(TextFormat::RED . ($this->getConfig()->get("translation") !== false?$this->getConfig()->get("translation"):"Firecracker"));
+		}
+	}
+
 	public function onDrop(PlayerDropItemEvent $event){
 		$item = $event->getItem();
 		if($item->getId() === Item::BRICK){
 			$player = $event->getPlayer();
-			if(!isset($this->givetask[$player->getName()])) $this->givetask[$player->getName()] = $this->getServer()->getScheduler()->scheduleDelayedTask(new NewCracker($this, $player), $this->getConfig()->get("get-items-after") * 20)->getTaskId();
+			if(!isset($this->givetask[$player->getName()])) $this->givetask[$player->getName()] = $this->getServer()->getScheduler()->scheduleDelayedTask(new NewCracker($this, $player), $this->getConfig()->get("give-items-after") * 20)->getTaskId();
 		}
 	}
 
@@ -122,13 +153,16 @@ class Main extends PluginBase implements Listener{
 		$itemitem = $entityitem->getItem();
 		if($itemitem->getId() === Item::BRICK){
 			$this->crackers[count($this->crackers)] = $this->getServer()->getScheduler()->scheduleDelayedTask(new ExplodeCracker($this, $entityitem, count($this->crackers)), 60)->getTaskId();
+			if(count($this->crackers) > 0){
+				if($this->particlesoundtask === null) $this->particlesoundtask = $this->getServer()->getScheduler()->scheduleRepeatingTask(new ParticleSound($this), 10)->getTaskId();
+			}
 			$entityitem->setPickupDelay(300);
 			$entityitem->setNameTagVisible(true);
-			$entityitem->setNameTag(TextFormat::RED . "Firecracker");
+			$entityitem->setNameTag(TextFormat::RED . ($this->getConfig()->get("translation") !== false?$this->getConfig()->get("translation"):"Firecracker"));
 		}
 	}
 
 	public function onJoin(PlayerJoinEvent $event){
-		$this->giveFirecracker($event->getPlayer());
+		if(!isset($this->givetask[$event->getPlayer()->getName()])) $this->givetask[$event->getPlayer()->getName()] = $this->getServer()->getScheduler()->scheduleDelayedTask(new NewCracker($this, $event->getPlayer()), 20)->getTaskId();
 	}
 }
