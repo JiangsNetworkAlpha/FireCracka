@@ -121,19 +121,25 @@ class Main extends PluginBase implements Listener{
 			$this->getServer()->getScheduler()->cancelTask($this->crackers[$id]);
 			unset($this->crackers[$id]);
 		}
-	}
-
-	public function makeParticleSound(){
 		$count = 0;
 		foreach($this->getServer()->getLevels() as $level){
 			foreach($level->getEntities() as $entity){
 				if($entity instanceof ItemEntity && $entity->getItem()->getId() === Item::BRICK){
 					$count++;
-					$entity->getLevel()->addSound(new FizzSound($entity->getPosition()));
-					$entity->getLevel()->addParticle(new FlameParticle(new Vector3($entity->x, $entity->y + 0.5, $entity->z)));
 				}
 				if($count === 0){
 					$this->getServer()->getScheduler()->cancelTask($this->particlesoundtask);
+				}
+			}
+		}
+	}
+
+	public function makeParticleSound(){
+		foreach($this->getServer()->getLevels() as $level){
+			foreach($level->getEntities() as $entity){
+				if($entity instanceof ItemEntity && $entity->getItem()->getId() === Item::BRICK){
+					$entity->getLevel()->addSound(new FizzSound($entity->getPosition()));
+					$entity->getLevel()->addParticle(new FlameParticle(new Vector3($entity->x, $entity->y + 0.5, $entity->z)));
 				}
 			}
 		}
