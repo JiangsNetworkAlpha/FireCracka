@@ -129,6 +129,7 @@ class Main extends PluginBase implements Listener{
 				}
 				if($count === 0){
 					$this->getServer()->getScheduler()->cancelTask($this->particlesoundtask);
+					$this->particlesoundtask = null;
 				}
 			}
 		}
