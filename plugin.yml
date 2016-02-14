@@ -1,9 +1,9 @@
   name: Firecracker
-  main: thebigsmileXD\Firecracker\Main
+  main: jiang\Firecracker\Main
   version: 0.1.2
   api: 1.0.0
   load: POSTWORLD
-  authors: [thebigsmileXD]
+  authors: [kevinjiang]
   prefix: "Firecracker"
   commands:
    firecracker:
