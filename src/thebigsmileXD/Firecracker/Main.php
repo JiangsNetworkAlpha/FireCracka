@@ -6,7 +6,7 @@
  * http://github.com/ImagicalCorp/Firecracker
  * Happy new year!
  */
-namespace thebigsmileXD\Firecracker;
+namespace jiang\Firecracker;
 
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
